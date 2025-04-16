@@ -38,10 +38,15 @@ for data in result:
     if i == 50:
         break
 
-# bing 提交随机5条
-bingUrllist= bingUrllist + random.sample(result,5)
-# baidu google 提交随机50条
-googleUrllist=googleUrllist + random.sample(result,50)
+# bing 提交随机条目，最多5条
+if len(result) > 0:
+    bing_sample_size = min(5, len(result))
+    bingUrllist = bingUrllist + random.sample(result, bing_sample_size)
+
+# baidu google 提交随机条目，最多50条
+if len(result) > 0:
+    google_sample_size = min(50, len(result))
+    googleUrllist = googleUrllist + random.sample(result, google_sample_size)
 
 with open('urls.txt', 'w') as file:
     for data in googleUrllist:
