@@ -30,7 +30,7 @@ jobs:
         architecture: 'x64'
     - name: Clone
       run: |
-        git clone --recursive git@github.com:MHG-LAB/Workflow-Keep-Alive
+        git clone --recursive git@github.com:Leizhenpeng/simen-website-seo-push
     - name: Build
       env:
         BOT_GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
