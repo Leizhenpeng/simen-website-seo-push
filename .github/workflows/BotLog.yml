@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 jobs:
   log:
-    if: github.repository == 'MHG-LAB/submit-urls-from-sitemap-to-search-engine'
+    if: github.repository == 'Leizhenpeng/simen-website-seo-push'
     runs-on: Ubuntu-latest
     env:
       TZ: Asia/Shanghai
