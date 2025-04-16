@@ -1,78 +1,65 @@
-# submit-urls-from-sitemap-to-search-engine
+# 自动推送网站Sitemap至搜索引擎
 
-## 它可以干嘛
+该项目通过 GitHub Actions 自动从您网站的 sitemap 文件中提取 URL，并将它们推送到百度和必应搜索引擎，以提升网站收录速度。
 
-提取 sitemap 中的链接，利用百度、必应、谷歌 API **自动** 推送至搜索引擎，提升网站收录速度。
+## 工作原理
 
-## 它要怎么用
+1.  **定时触发**: GitHub Actions 会根据预设的 cron 计划（默认为每天早上7点 UTC，即北京时间下午3点）自动运行。
+2.  **检出代码**: Action 会检出您的仓库代码。
+3.  **环境设置**: 设置 Python 和 Node.js 环境（尽管 Node.js 在当前推送逻辑中可能不是必需的）。
+4.  **生成URL列表**: 运行 `generate.py` 脚本：
+    *   读取您在脚本中配置的 `site` 和 `sitemaps` 变量。
+    *   访问 sitemap 文件，提取所有 URL。
+    *   将 URL 分别整理到 `urls.txt` (用于百度) 和 `bing.json` (用于必应) 文件中。
+5.  **推送至必应**: 使用 `curl` 命令和您的 `BINGTOKEN`，将 `bing.json` 中的 URL 推送给必应 API。
+6.  **推送至百度**: 使用 `curl` 命令和您的 `BAIDUTOKEN` 及 `SITE`，将 `urls.txt` 中的 URL 推送给百度 API。
 
-请不要 fork 此仓库！！ 使用模板导入 [Use this template](https://github.com/MHG-LAB/submit-urls-from-sitemap-to-search-engine/generate) !! 瞎点fork按钮发送垃圾 PR 将直接提交到 GitHub 黑名单中）
+## 部署步骤
 
-将 `generate.py` 文件中 `site` 的值修改为你的博客地址， `sitemaps` 变量的值修改为你的 sitemap.xml 地址，请确保你的 sitemap 为正常格式。
+1.  **使用模板创建仓库**:
+    *   **重要**: 请勿直接 Fork！点击原始仓库页面右上角的 "Use this template" 按钮，选择 "Create a new repository"。这会创建一个属于您自己的、与原仓库无关的新仓库。
 
-```py
-site = 'https://blog.xxx.cn'
-sitemaps = ['/sitemap1.xml','/sitemap2.xml']
-```
+2.  **修改 `generate.py` 配置**:
+    *   克隆您刚刚创建的仓库到本地。
+    *   打开 `generate.py` 文件。
+    *   修改 `site` 变量为您网站的**主域名**（例如：`'https://yourdomain.com'`，确保包含 `http` 或 `https`，结尾**不要**加 `/`）。
+    *   修改 `sitemaps` 变量为您网站的 sitemap 文件路径列表（相对于主域名，例如：`['/sitemap.xml', '/another_sitemap.xml']`）。
+    *   保存文件并将修改推送到您的 GitHub 仓库。
 
-### 百度
+3.  **设置 GitHub Secrets**:
+    *   在您的 GitHub 仓库页面，点击 "Settings" -> "Secrets and variables" -> "Actions"。
+    *   点击 "New repository secret" 添加以下 **必需** 的 Secrets：
+        *   **`BINGTOKEN`**:
+            *   **获取**: 前往 Bing Webmaster Tools -> 设置 -> API 访问 -> API 密钥 -> 新建。
+            *   **值**: 复制生成的 API 密钥。
+        *   **`BAIDUTOKEN`**:
+            *   **获取**: 前往 百度搜索资源平台 -> 用户中心 -> 站点管理 -> API提交，找到接口调用地址 `http://data.zz.baidu.com/urls?site=xxx&token=xxx`，复制 `token=` 后面的那一串字符。
+            *   **值**: 粘贴您复制的 token。
+        *   **`SITE`**:
+            *   **值**: 填写您在百度搜索资源平台**验证通过**的网站主域名（**必须**与百度后台绑定的域名完全一致，包括 `http/https` 和 `www` 等，结尾**不要**加 `/`）。**这是导致 "site init fail" 错误的最常见原因。**
 
-先前往百度资源搜索平台获取 `token`，就是 API 提交中，接口调用地址 `http://data.zz.baidu.com/urls?site=xxx&token=xxx`，`token=` 之后的那一串。
+4.  **(可选) 配置谷歌推送**:
+    *   如果您需要推送到 Google，请取消注释 `push.yml` 文件中 "Push to Google" 相关的代码块。
+    *   按照原始 README 或 Google Cloud Platform 文档设置 Indexing API 访问权限，获取服务账号的 JSON 密钥文件。
+    *   添加一个新的 GitHub Secret：
+        *   **`GOOGLE_SERVICE_ACCOUNT`**:
+            *   **值**: 将整个服务账号 JSON 文件的**内容**粘贴进去。
+    *   确保服务账号的 email 地址已被添加为您 Google Search Console 对应网站的"委托所有者"。
 
-`fork` 本仓库，`Settings > Secrets > new New secret`，`Name` 中填写 `BAIDUTOKEN`，`Value` 即刚刚获取的。（放入 Secrets 中能防止 token 泄露）。再新建一个 secret，`name` 为 `site`，`Value` 为你的博客地址，需要协议头，结尾不能有 `/`
+5.  **完成**: 配置完成后，GitHub Actions 将根据 `push.yml` 中设置的 `schedule` 自动运行。您也可以在仓库的 "Actions" 页面手动触发 `push` 工作流进行测试。
 
-好了，大功告成，接下来每天 GitHub 便会自动帮你推送链接至百度。
+## 所需环境变量 (Secrets) 总结
 
-#### 配额
+以下是运行此项目所需设置的 GitHub Secrets 列表：
 
-每天前 50 个 URL + 随机 50 个 URL
+*   **必需**:
+    *   `BINGTOKEN`: 用于必应 API 推送。
+    *   `BAIDUTOKEN`: 用于百度 API 推送。
+    *   `SITE`: 用于百度 API 推送，**必须**与百度资源平台验证的站点完全一致。
+*   **可选**:
+    *   `GOOGLE_SERVICE_ACCOUNT`: (如果启用谷歌推送) Google 服务账号的 JSON 凭证内容。
 
-### 必应
-
-前往 <https://www.bing.com/webmasters>，`设置 -> API 访问 -> API 密钥 -> 新建`
-
-`Settings > Secrets > new New secret`，`Name` 中填写 `BINGTOKEN`，`Value` 填入刚刚新建的密钥
-
-#### 配额
-
-每天前 5 个 URL + 随机 5 个 URL
-
-### 谷歌
-
-首先，您需要在 Google Cloud Platform 中设置对 Indexing API 的访问权限 - 按照以下说明进行操作。
-
-https://developers.google.com/search/apis/indexing-api/v3/prereqs
-
-一旦您有权访问索引 API，您就可以下载公钥/私钥对 JSON 文件，其中包含您的所有凭据，并应保存为“service_account.json”。
-
-`Settings > Secrets > new New secret`，`Name` 中填写 `GOOGLE_SERVICE_ACCOUNT`，`Value` 填入刚刚新建的密钥
-
-#### 在 Search Console 中验证网站所有权以提交网址以编制索引
-
-在此步骤中，您将验证您是否可以控制您的网络资产。
-
-要验证您网站的所有权，您需要添加您的服务帐户电子邮件地址（请参阅 service_account.json - client_email）并将其添加为 Search Console 中网络媒体资源的所有者（“委托”）。
-
-您可以在两个地方找到您的服务帐号电子邮件地址：
-
-- 您在创建项目时下载的 JSON 私钥中的 client_email 字段。
-- 开发者控制台中服务帐户视图的服务帐户 ID 列。
-- 电子邮件地址的格式类似于以下内容：
-例如，“ my-service-account@test-project-42.google.com.iam.gserviceaccount.com ”。
-
-然后...
-
-- 1.转到Google 网站管理员中心
-
-- 2.点击您经过验证的资源
-
-- 3.向下滚动并单击“添加所有者”。
-
-- 4.将您的服务帐号电子邮件地址作为资源的所有者添加到该资源中。
-
-#### 配额
-
-每天前 50 个 URL + 随机 50 个 URL
+**不再需要** `BOT_DEPLOY_KEY`, `BOT_NAME`, `BOT_EMAIL`, `BOT_GITHUB_TOKEN` 这些用于旧版 BotLog 工作流的 Secrets。
 
 ---
 
